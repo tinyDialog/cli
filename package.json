@@ -1,0 +1,29 @@
+{
+  "name": "@tinydialog/cli",
+  "version": "0.1.0",
+  "description": "Read tinyDialog projects, surveys, and submitted feedback from the command line.",
+  "type": "module",
+  "bin": {
+    "tinydialog": "./dist/npm/index.js"
+  },
+  "files": [
+    "dist/npm",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "bun build ./index.ts --target=node --outfile ./dist/npm/index.js",
+    "build:standalone": "bun build ./index.ts --compile --minify --no-compile-autoload-dotenv --no-compile-autoload-bunfig --outfile ./dist/bin/tinydialog",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.9.3"
+  }
+}
