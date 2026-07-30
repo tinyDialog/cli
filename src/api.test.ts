@@ -44,4 +44,17 @@ describe('API client', () => {
 
     expect(requestUrl).toBe('http://localhost:3000/api/cli/surveys?limit=50&projectId=project-id');
   });
+
+  test('preserves HTTP error details when the JSON body is null', async () => {
+    globalThis.fetch = (async (_input, _init) => new Response('null', {
+      status: 401,
+      headers: {'Content-Type': 'application/json'},
+    })) as typeof fetch;
+
+    await expect(listProjects('https://app.tinydialog.com', 'expired-key', 25)).rejects.toMatchObject({
+      status: 401,
+      code: 'request_failed',
+      message: 'Request failed with status 401.',
+    });
+  });
 });

@@ -55,4 +55,13 @@ describe('parseArgs', () => {
     ])).toThrow('Use --project or --project-id');
     expect(() => parseArgs(['project', 'list', '--limit', '0'])).toThrow('positive integer');
   });
+
+  test('rejects empty option values', () => {
+    expect(() => parseArgs(['response', 'list', '--project='])).toThrow(
+      'Option --project requires a value.',
+    );
+    expect(() => parseArgs(['response', 'list', '--project', 'Website', '--survey='])).toThrow(
+      'Option --survey requires a value.',
+    );
+  });
 });

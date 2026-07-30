@@ -20,6 +20,23 @@ import {
 import {formatProjects, formatResponses, formatSurveys} from './format.ts';
 import {commandHelp} from './help.ts';
 
+type OutputWithErrorEvents = {
+  on(event: 'error', listener: (error: NodeJS.ErrnoException) => void): unknown;
+};
+
+export function installOutputErrorHandler(
+  output: OutputWithErrorEvents = process.stdout,
+  exit: (code: number) => void = (code) => process.exit(code),
+) {
+  output.on('error', (error) => {
+    if(error.code === 'EPIPE') {
+      exit(0);
+      return;
+    }
+    throw error;
+  });
+}
+
 function openBrowser(url: string) {
   const command = process.platform === 'darwin'
     ? {name: 'open', args: [url]}
@@ -137,8 +154,9 @@ async function runAuthLogout(host: string) {
   process.stdout.write(`Signed out from ${host}.\n`);
 }
 
-function splitCombinedSurvey(command: Extract<ParsedCommand, {kind: 'response-list'}>) {
+export function splitCombinedSurvey(command: Extract<ParsedCommand, {kind: 'response-list'}>) {
   if(!command.survey?.includes('/')) return command;
+  if(command.project || command.projectId) return command;
 
   const slashIndex = command.survey.indexOf('/');
   const combinedProject = command.survey.slice(0, slashIndex).trim();
@@ -146,13 +164,6 @@ function splitCombinedSurvey(command: Extract<ParsedCommand, {kind: 'response-li
   if(!combinedProject || !survey) {
     throw new Error('--survey <project/survey> requires non-empty project and survey names.');
   }
-  if(command.projectId) {
-    throw new Error('Do not combine --project-id with --survey <project/survey>.');
-  }
-  if(command.project && command.project.toLocaleLowerCase() !== combinedProject.toLocaleLowerCase()) {
-    throw new Error('--project conflicts with the project in --survey <project/survey>.');
-  }
-
   return {...command, project: combinedProject, survey};
 }
 

@@ -5,7 +5,7 @@ export type OutputFormat = 'json'|'markdown';
 function sanitize(value: unknown) {
   return String(value ?? '')
     .replace(/\u001B(?:\[[0-?]*[ -/]*[@-~]|[@-_])/g, '')
-    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '');
+    .replace(/[\u0000-\u0008\u000B-\u001F\u007F]/g, '');
 }
 
 function inline(value: unknown) {

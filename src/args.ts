@@ -57,7 +57,7 @@ function parseOptions(args: string[], allowed: Set<string>) {
     }
 
     const value = equalsIndex === -1 ? args[++index] : argument.slice(equalsIndex + 1);
-    if(value == null || value.startsWith('--')) {
+    if(value == null || value === '' || value.startsWith('--')) {
       throw new Error(`Option --${rawName} requires a value.`);
     }
     if(options[name as keyof ParsedOptions] != null) {

@@ -31,7 +31,7 @@ describe('output formatting', () => {
     const responses: SurveyResponse[] = [{
       id: 7,
       timestamp: '2026-07-28T12:00:00.000Z',
-      response: {type: 'single', value: 'First line\n\u001b[31mSecond line'},
+      response: {type: 'single', value: 'First\r line\n\u001b[31mSecond line'},
       project: {
         id: 'project-id',
         name: 'Website',
@@ -52,6 +52,7 @@ describe('output formatting', () => {
 
     const output = formatResponses(responses, 'markdown');
     expect(output).toContain('> First line\n> Second line');
+    expect(output).not.toContain('\r');
     expect(output).not.toContain('\u001b');
   });
 });

@@ -53,7 +53,9 @@ async function requestJson<T>(host: string, apiKey: string, path: string, search
   }
 
   if(!response.ok) {
-    const errorBody = body as ApiErrorBody;
+    const errorBody = typeof body === 'object' && body != null
+      ? body as ApiErrorBody
+      : {};
     throw new ApiError(
       response.status,
       errorBody.error?.code ?? 'request_failed',

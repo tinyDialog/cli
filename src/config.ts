@@ -1,5 +1,5 @@
 import {homedir} from 'node:os';
-import {dirname, join, parse, resolve} from 'node:path';
+import {dirname, isAbsolute, join, parse, resolve} from 'node:path';
 import {chmod, mkdir, readFile, rename, unlink, writeFile} from 'node:fs/promises';
 
 export const DEFAULT_HOST = 'https://app.tinydialog.com';
@@ -36,7 +36,11 @@ export function getConfigDirectory() {
     return join(process.env.APPDATA, 'tinydialog-cli');
   }
 
-  return join(process.env.XDG_CONFIG_HOME ?? join(homedir(), '.config'), 'tinydialog-cli');
+  const xdgConfigHome = process.env.XDG_CONFIG_HOME;
+  const baseDirectory = xdgConfigHome && isAbsolute(xdgConfigHome)
+    ? xdgConfigHome
+    : join(homedir(), '.config');
+  return join(baseDirectory, 'tinydialog-cli');
 }
 
 export function getAuthenticationFilePath() {

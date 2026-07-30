@@ -1,10 +1,11 @@
 import {afterEach, describe, expect, test} from 'bun:test';
 import {mkdtemp, mkdir, readFile, rm, stat, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
-import {tmpdir} from 'node:os';
+import {homedir, tmpdir} from 'node:os';
 import {
   findDefaultProject,
   getAuthenticationFilePath,
+  getConfigDirectory,
   getStoredApiKey,
   normalizeHost,
   removeStoredApiKey,
@@ -44,6 +45,14 @@ describe('configuration', () => {
     }));
 
     expect(await findDefaultProject(nestedDirectory)).toBe('Website');
+  });
+
+  test('ignores empty and relative XDG_CONFIG_HOME values', () => {
+    process.env.XDG_CONFIG_HOME = '';
+    expect(getConfigDirectory()).toBe(join(homedir(), '.config', 'tinydialog-cli'));
+
+    process.env.XDG_CONFIG_HOME = 'project-config';
+    expect(getConfigDirectory()).toBe(join(homedir(), '.config', 'tinydialog-cli'));
   });
 
   test('stores credentials per host with restrictive file permissions', async () => {
