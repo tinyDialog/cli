@@ -45,6 +45,12 @@ describe('configuration', () => {
     }));
 
     expect(await findDefaultProject(nestedDirectory)).toBe('Website');
+
+    await writeFile(join(directory, 'package.json'), JSON.stringify({
+      tinyDialog: {project: 'Website 2 (camelCase)'},
+    }));
+
+    expect(await findDefaultProject(nestedDirectory)).toBe('Website 2 (camelCase)');
   });
 
   test('ignores empty and relative XDG_CONFIG_HOME values', () => {

@@ -162,18 +162,15 @@ export async function findDefaultProject(startDirectory = process.cwd()) {
     const packageJsonPath = join(directory, 'package.json');
     try {
       const packageJson = JSON.parse(await readFile(packageJsonPath, 'utf8')) as unknown;
-      if(
-        typeof packageJson === 'object'
-        && packageJson != null
-        && 'tinydialog' in packageJson
-        && typeof packageJson.tinydialog === 'object'
-        && packageJson.tinydialog != null
-        && 'project' in packageJson.tinydialog
-      ) {
-        if(typeof packageJson.tinydialog.project !== 'string' || !packageJson.tinydialog.project.trim()) {
+      const tinyDialogConfigInPackageJson = (packageJson && typeof packageJson === 'object')
+        ? ((packageJson as Record<string, object>)['tinydialog'] ?? (packageJson as Record<string, object>)['tinyDialog'])
+        : null;
+
+      if(tinyDialogConfigInPackageJson && 'project' in tinyDialogConfigInPackageJson) {
+        if(typeof tinyDialogConfigInPackageJson.project !== 'string' || !tinyDialogConfigInPackageJson.project.trim()) {
           throw new Error(`${packageJsonPath}: tinydialog.project must be a non-empty string.`);
         }
-        return packageJson.tinydialog.project.trim();
+        return tinyDialogConfigInPackageJson.project.trim();
       }
     } catch(error) {
       if((error as NodeJS.ErrnoException).code !== 'ENOENT') {
