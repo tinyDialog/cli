@@ -1,47 +1,42 @@
-# tinyDialog CLI
+# tinyDialog.com CLI
 
-Read tinyDialog projects, surveys, and submitted user feedback from a terminal or an agent.
+Query [tinyDialog.com](https://tinydialog.com/) projects, surveys, and submitted feedback from your terminal or agent.
 
 ```sh
+# install CLI system-wide
 npm install --global @tinydialog/cli
+
+# create a tinyDialog.com api-key and authenticate
 tinydialog auth
-tinydialog project list
-tinydialog survey list --project "My Project"
-tinydialog response list --format json
+
+# list the latest responses in project "My Website"
+tinydialog response list --project "My Website"
+
+# list the latest responses for survey "Feedback Widget" in project "My Website"
+tinydialog response list --survey "My Website/Feedback Widget"
 ```
 
-Run `tinydialog help` for the full, agent-friendly command reference.
+Run `tinydialog help` for all commands or `tinydialog <command> --help` for one command.
 
-Every API request includes `X-Compatibility-Date: 2026-07-28`. The server currently ignores this header; it is reserved for future compatibility behavior.
+## Configuring a default project
 
-## Authentication
+If you add a "tinydialog" config-key to your project's `package.json` file, the CLI will automatically use the configured project as default-project when running `tinydialog response list` without an explicit `--project` parameter. 
 
-`tinydialog auth` opens the tinyDialog API-key management settings, validates the pasted key, and stores it per host in:
-
-- `$XDG_CONFIG_HOME/tinydialog-cli/auth.json`, or
-- `~/.config/tinydialog-cli/auth.json`, or
-- `%APPDATA%\tinydialog-cli\auth.json` on Windows.
-
-For non-interactive environments, set `TINYDIALOG_CLI_API_KEY`. Set `TINYDIALOG_CLI_HOST` to use a local or preview app host.
-
-## Project context
-
-When `response list` has no explicit project selector, the CLI searches the current directory and its parents for:
-
+e.g. in your `package.json`:
 ```json
 {
+  "name": "my project",
+  "dependencies": {...},
+  ...
   "tinydialog": {
     "project": "My Project"
   }
 }
 ```
+Then you can just run `tinydialog response list` inside your project directory, and it will default to the project "My Project".
 
-## Development
+You can still override the configured default-project by explicitly passing a different `--project <projectName>` parameter. 
 
-```sh
-bun install
-bun test
-bun run typecheck
-bun run build
-bun run build:standalone
-```
+## Additional Docs
+
+See [configuration docs](docs/CONFIG.md), [implementation details](docs/IMPLEMENTATION.md), and [contributing.md](CONTRIBUTING.md).
