@@ -1,6 +1,6 @@
 {
   "name": "@tinydialog/cli",
-  "version": "0.0.1",
+  "version": "0.0.0",
   "description": "Read tinyDialog projects, surveys, and submitted feedback from the command line.",
   "type": "module",
   "repository": "https://github.com/tinyDialog/cli",
@@ -18,7 +18,7 @@
   ],
   "scripts": {
     "build": "bun build ./index.ts --target=node --outfile ./dist/npm/index.js",
-    "build:standalone": "bun build ./index.ts --compile --minify --no-compile-autoload-dotenv --no-compile-autoload-bunfig --outfile ./dist/bin/tinydialog",
+    "build:standalone": "bun build ./index.ts --compile --minify --no-compile-autoload-dotenv --no-compile-autoload-bunfig",
     "prepack": "bun run build",
     "typecheck": "tsc --noEmit",
     "test": "bun test"

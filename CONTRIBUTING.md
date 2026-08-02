@@ -7,8 +7,10 @@ bun install
 bun test
 bun run typecheck
 bun run build
-bun run build:standalone
+bun run build:standalone -- --outfile ./dist/bin/tinydialog
 ```
+
+`build:standalone` takes the output path (and optionally `--target=bun-<platform>`) as an argument, so one script can cross-compile every release binary.
 
 ## Specifying a custom backend server
 
