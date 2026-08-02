@@ -4,7 +4,7 @@
   "description": "Read tinyDialog projects, surveys, and submitted feedback from the command line.",
   "type": "module",
   "bin": {
-    "tinydialog": "./dist/npm/index.js"
+    "tinydialog": "dist/npm/index.js"
   },
   "files": [
     "dist/npm",
