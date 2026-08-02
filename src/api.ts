@@ -1,7 +1,8 @@
 import type {ApiListResponse, CurrentUserResponse, Project, Survey, SurveyResponse} from './types.ts';
+import {version as packageVersion} from '../package.json' with {type: 'json'};
 
 export const CLI_COMPATIBILITY_DATE = '2026-07-28';
-export const CLI_VERSION = '0.1.0';
+export const CLI_VERSION = packageVersion;
 
 type ApiErrorBody = {
   error?: {
