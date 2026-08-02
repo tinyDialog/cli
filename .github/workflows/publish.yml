@@ -1,0 +1,307 @@
+name: Publish
+
+on:
+  push:
+    branches: [main]
+
+# Never publish two versions concurrently, and never cancel a half-done release.
+# GitHub keeps only one *pending* run per group, so two version bumps pushed in
+# quick succession can drop the older one — release it by bumping again.
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+permissions: {}
+
+defaults:
+  run:
+    shell: bash -euo pipefail {0}
+
+env:
+  NODE_VERSION: "24.18.1"
+  PACKAGE_NAME: "@tinydialog/cli"
+  GH_REPO: ${{ github.repository }}
+
+jobs:
+  check:
+    name: Check release state
+    if: github.repository == 'tinyDialog/cli'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.check.outputs.version }}
+      publish: ${{ steps.check.outputs.publish }}
+      release: ${{ steps.check.outputs.release }}
+      prerelease: ${{ steps.check.outputs.prerelease }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - id: check
+        name: Check release state
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          name="$(jq -r .name package.json)"
+          if [[ "$name" != "$PACKAGE_NAME" ]]; then
+            echo "::error::Refusing to publish unexpected package '$name'"
+            exit 1
+          fi
+
+          # Stricter than SemVer: build metadata is rejected outright, so every
+          # version maps cleanly onto a git tag and a `x.y.z[-pre]` comparison.
+          version="$(jq -r .version package.json)"
+          semver='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-(0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*)(\.(0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*))*)?$'
+          if [[ ! "$version" =~ $semver ]]; then
+            echo "::error::package.json version '$version' is not valid SemVer, or carries unsupported build metadata"
+            exit 1
+          fi
+          if [[ "$version" == *-* ]]; then prerelease=true; else prerelease=false; fi
+
+          npm_err="$RUNNER_TEMP/npm.err"
+          gh_err="$RUNNER_TEMP/gh.err"
+
+          # npm is the source of truth for "has this version shipped?".
+          if npm view --prefer-online "${PACKAGE_NAME}@${version}" version >/dev/null 2>"$npm_err"; then
+            publish=false
+          elif grep -q E404 "$npm_err"; then
+            publish=true
+          else
+            cat "$npm_err" >&2
+            echo "::error::Could not query npm for ${PACKAGE_NAME}@${version}"
+            exit 1
+          fi
+
+          # A missing or draft release means there is still release work to do;
+          # an already-published one means this commit is fully released. This is
+          # only a gate on whether the rest of the pipeline runs: the deploy job
+          # re-reads the release with a token that can see drafts, and owns the
+          # tag-consistency and prerelease-mismatch guards.
+          tag="v$version"
+          if ! release_json="$(gh release view "$tag" --json isDraft 2>"$gh_err")"; then
+            grep -qE "release not found|HTTP 404" "$gh_err" ||
+              { cat "$gh_err" >&2; echo "::error::Could not query release $tag"; exit 1; }
+            release=true
+            release_state=missing
+          elif [[ "$(jq -r .isDraft <<< "$release_json")" == true ]]; then
+            release=true
+            release_state=draft
+          else
+            release=false
+            release_state=published
+          fi
+
+          # npm refuses this at publish time too, but failing here keeps a bad
+          # version from ever getting a tag or a release.
+          if [[ "$publish" == true && "$prerelease" == false ]]; then
+            if ! latest="$(npm view --prefer-online "$PACKAGE_NAME" dist-tags.latest 2>"$npm_err")"; then
+              grep -q E404 "$npm_err" ||
+                { cat "$npm_err" >&2; echo "::error::Could not query npm's latest version"; exit 1; }
+              latest=""
+            fi
+            if [[ -n "$latest" ]]; then
+              if [[ ! "$latest" =~ $semver ]]; then
+                echo "::error::npm's latest version '$latest' is not one this workflow can compare against"
+                exit 1
+              fi
+              # Compare release cores numerically. Equal cores can only mean
+              # `latest` is a prerelease of this version, which is a step forward.
+              latest_core="${latest%%-*}"
+              if [[ "$version" != "$latest_core" &&
+                    "$(printf '%s\n%s\n' "$version" "$latest_core" |
+                       sort -t. -k1,1n -k2,2n -k3,3n | head -1)" == "$version" ]]; then
+                echo "::error::Refusing to move npm's latest tag backwards from $latest to $version"
+                exit 1
+              fi
+            fi
+          fi
+
+          {
+            echo "version=$version"
+            echo "publish=$publish"
+            echo "release=$release"
+            echo "prerelease=$prerelease"
+          } >> "$GITHUB_OUTPUT"
+          echo "### \`${PACKAGE_NAME}@${version}\` — npm publish: \`$publish\`, GitHub release: \`$release_state\`" >> "$GITHUB_STEP_SUMMARY"
+
+  build:
+    name: Test & build
+    needs: check
+    if: needs.check.outputs.publish == 'true' || needs.check.outputs.release == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version-file: .bun-version
+
+      - run: bun install --frozen-lockfile --ignore-scripts
+
+      - run: |
+          bun run typecheck
+          bun test
+
+      - name: Build release artifacts
+        env:
+          VERSION: ${{ needs.check.outputs.version }}
+        run: |
+          bun run build
+          mkdir -p dist/bin dist/package
+          for target in linux-x64 linux-arm64 darwin-x64 darwin-arm64 windows-x64; do
+            out="dist/bin/tinydialog-$target"
+            if [[ "$target" == windows-* ]]; then out="$out.exe"; fi
+            bun run build:standalone -- --target="bun-$target" --outfile "$out"
+          done
+          (cd dist/bin && sha256sum tinydialog-* > SHA256SUMS.txt)
+          bun pm pack --ignore-scripts --destination dist/package
+
+          # Fail here rather than after the deploy job has already cut a tag.
+          tarball="${PACKAGE_NAME#@}"
+          tarball="dist/package/${tarball//\//-}-$VERSION.tgz"
+          if [[ ! -f "$tarball" ]]; then
+            echo "::error::bun pm pack did not produce the expected $tarball"
+            exit 1
+          fi
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-artifacts
+          path: |
+            dist/bin/*
+            dist/package/*.tgz
+          if-no-files-found: error
+          # Must outlive the `release` environment's approval wait, or deploy
+          # fails at download-artifact with nothing left to publish.
+          retention-days: 7
+
+  deploy:
+    name: Publish npm & GitHub release
+    needs: [check, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # This is the privileged half of the pipeline, and the environment is what
+    # keeps it that way: configure `release` with required reviewers and limit
+    # its deployment branches to `main`, so no push can mint a tag, an npm
+    # publish or an attestation without a human approving the run first.
+    environment: release
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    env:
+      VERSION: ${{ needs.check.outputs.version }}
+      PRERELEASE: ${{ needs.check.outputs.prerelease }}
+    # Deliberately never checks out the repository: this job only moves bytes the
+    # unprivileged job already produced, so no repo-controlled file (a committed
+    # `.npmrc`, a build script) is ever in reach of the publishing credentials.
+    steps:
+      # npm authenticates via OIDC (npm trusted publishing), so there is no token
+      # here: the publisher configured on npm must match this repository, this
+      # workflow file and the `release` environment exactly, or publish fails with
+      # a 404. Registry caching stays off so a poisoned cache cannot reach the
+      # OIDC token. Needs npm >= 11.5.1, which NODE_VERSION ships.
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: release-artifacts
+          path: dist
+
+      # `actions/attest` trusts SHA256SUMS.txt rather than hashing the binaries,
+      # so re-check it here: the attestation, the release assets and these bytes
+      # are then provably the same thing.
+      - name: Verify artifact checksums
+        run: cd dist/bin && sha256sum --check --strict SHA256SUMS.txt
+
+      - name: Create or verify release tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="v$VERSION"
+          gh_err="$RUNNER_TEMP/gh.err"
+          if tag_commit="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$tag" --jq .object.sha 2>"$gh_err")"; then
+            if [[ "$tag_commit" != "$GITHUB_SHA" ]]; then
+              echo "::error::$tag points to $tag_commit, not $GITHUB_SHA"
+              exit 1
+            fi
+          else
+            grep -q "HTTP 404" "$gh_err" ||
+              { cat "$gh_err" >&2; echo "::error::Could not query tag $tag"; exit 1; }
+            gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" \
+              -f ref="refs/tags/$tag" \
+              -f sha="$GITHUB_SHA" >/dev/null
+          fi
+
+      # Unconditional: this job only runs when there is an npm publish or a
+      # GitHub release to do, and an npm-only run needs provenance just as much
+      # as a release-only one. Re-runs just add another attestation.
+      - uses: actions/attest@508db95dd578ae2727ebd6217d5ba78e4fbda05d # v4.2.1
+        with:
+          subject-checksums: dist/bin/SHA256SUMS.txt
+
+      - id: github_release
+        if: needs.check.outputs.release == 'true'
+        name: Create or resume draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="v$VERSION"
+          gh_err="$RUNNER_TEMP/gh.err"
+          if ! release_json="$(gh release view "$tag" --json isDraft,isPrerelease 2>"$gh_err")"; then
+            grep -qE "release not found|HTTP 404" "$gh_err" ||
+              { cat "$gh_err" >&2; echo "::error::Could not query release $tag"; exit 1; }
+            gh release create "$tag" --draft --verify-tag --prerelease="$PRERELEASE" \
+              --title "$tag" --generate-notes \
+              --notes "Install: \`bun add -g ${PACKAGE_NAME}@${VERSION}\` — or grab a standalone binary below (checksums in \`SHA256SUMS.txt\`)."
+            release_json='{"isDraft":true}'
+          fi
+
+          if [[ "$(jq -r .isDraft <<< "$release_json")" != true ]]; then
+            actual_prerelease="$(jq -r .isPrerelease <<< "$release_json")"
+            if [[ "$actual_prerelease" != "$PRERELEASE" ]]; then
+              echo "::error::Published release $tag has prerelease=$actual_prerelease, expected $PRERELEASE"
+              exit 1
+            fi
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          gh release upload "$tag" --clobber dist/bin/tinydialog-* dist/bin/SHA256SUMS.txt
+          echo "publish=true" >> "$GITHUB_OUTPUT"
+
+      - name: Publish to npm if missing
+        run: |
+          npm_err="$RUNNER_TEMP/npm.err"
+          if npm view --prefer-online "${PACKAGE_NAME}@${VERSION}" version >/dev/null 2>"$npm_err"; then
+            echo "${PACKAGE_NAME}@${VERSION} is already on npm"
+            exit 0
+          fi
+          grep -q E404 "$npm_err" ||
+            { cat "$npm_err" >&2; echo "::error::Could not query npm for ${PACKAGE_NAME}@${VERSION}"; exit 1; }
+
+          tarball="${PACKAGE_NAME#@}"
+          tarball="dist/package/${tarball//\//-}-$VERSION.tgz"
+          # Prereleases go to `next`; stable versions keep npm's default tag, which
+          # leaves npm's own "cannot implicitly move latest backwards" guard armed.
+          args=(--ignore-scripts)
+          if [[ "$PRERELEASE" == true ]]; then args+=(--tag next); fi
+          npm publish "$tarball" "${args[@]}"
+
+      - if: steps.github_release.outputs.publish == 'true'
+        name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release edit "v$VERSION" --draft=false --prerelease="$PRERELEASE"
