@@ -1,6 +1,6 @@
 {
   "name": "@tinydialog/cli",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "description": "Read tinyDialog projects, surveys, and submitted feedback from the command line.",
   "type": "module",
   "bin": {
