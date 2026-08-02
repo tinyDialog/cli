@@ -44,6 +44,13 @@ describe('parseArgs', () => {
     expect(parseArgs(['auth', 'signout'])).toEqual({kind: 'auth-logout'});
   });
 
+  test('accepts the hidden config location command', () => {
+    expect(parseArgs(['config', 'location'])).toEqual({kind: 'config-location'});
+    expect(() => parseArgs(['config', 'location', 'extra'])).toThrow(
+      'Too many arguments for config location.',
+    );
+  });
+
   test('rejects ambiguous selectors and invalid limits', () => {
     expect(() => parseArgs([
       'response',

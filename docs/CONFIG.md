@@ -1,5 +1,7 @@
 # Configuration
 
+Run `tinydialog config location` to print the config folder actually used by the CLI.
+
 ## Authentication
 
 Run `tinydialog auth` to create, validate, and store an API key. Credentials are stored per host. `tinydialog auth status` shows the active credential; `tinydialog auth logout` removes it.

@@ -11,6 +11,7 @@ import {
 import {
   findDefaultProject,
   getAuthenticationFilePath,
+  getConfigDirectory,
   getStoredApiKey,
   normalizeHost,
   removeStoredApiKey,
@@ -203,6 +204,10 @@ export async function main(args: string[]) {
     }
     if(command.kind === 'version') {
       process.stdout.write(`tinydialog ${CLI_VERSION}\n`);
+      return;
+    }
+    if(command.kind === 'config-location') {
+      process.stdout.write(`${getConfigDirectory()}\n`);
       return;
     }
 

@@ -6,6 +6,7 @@ export type ParsedCommand =
   | {kind: 'auth-login'}
   | {kind: 'auth-status'}
   | {kind: 'auth-logout'}
+  | {kind: 'config-location'}
   | {kind: 'project-list'; format: OutputFormat; limit: number}
   | {
     kind: 'survey-list';
@@ -104,6 +105,12 @@ export function parseArgs(args: string[]): ParsedCommand {
     if(action === 'status') return {kind: 'auth-status'};
     if(action === 'logout' || action === 'signout') return {kind: 'auth-logout'};
     throw new Error(`Unknown auth action: ${action}`);
+  }
+
+  if(noun === 'config') {
+    if(args[1] !== 'location') throw new Error('Expected "config location".');
+    if(args.length > 2) throw new Error('Too many arguments for config location.');
+    return {kind: 'config-location'};
   }
 
   if(!['project', 'survey', 'response'].includes(noun)) {
