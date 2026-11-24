@@ -18,17 +18,7 @@ describe('parseArgs', () => {
   });
 
   test('accepts JSON, custom limits, and hidden ID selectors', () => {
-    expect(parseArgs([
-      'responses',
-      'list',
-      '--format=json',
-      '--limit',
-      '12',
-      '--project-id',
-      'project-id',
-      '--survey-id',
-      'survey-id',
-    ])).toEqual({
+    expect(parseArgs(['responses', 'list', '--format=json', '--limit', '12', '--project-id', 'project-id', '--survey-id', 'survey-id'])).toEqual({
       kind: 'response-list',
       format: 'json',
       limit: 12,
@@ -46,29 +36,16 @@ describe('parseArgs', () => {
 
   test('accepts the hidden config location command', () => {
     expect(parseArgs(['config', 'location'])).toEqual({kind: 'config-location'});
-    expect(() => parseArgs(['config', 'location', 'extra'])).toThrow(
-      'Too many arguments for config location.',
-    );
+    expect(() => parseArgs(['config', 'location', 'extra'])).toThrow('Too many arguments for config location.');
   });
 
   test('rejects ambiguous selectors and invalid limits', () => {
-    expect(() => parseArgs([
-      'response',
-      'list',
-      '--project',
-      'Website',
-      '--project-id',
-      'id',
-    ])).toThrow('Use --project or --project-id');
+    expect(() => parseArgs(['response', 'list', '--project', 'Website', '--project-id', 'id'])).toThrow('Use --project or --project-id');
     expect(() => parseArgs(['project', 'list', '--limit', '0'])).toThrow('positive integer');
   });
 
   test('rejects empty option values', () => {
-    expect(() => parseArgs(['response', 'list', '--project='])).toThrow(
-      'Option --project requires a value.',
-    );
-    expect(() => parseArgs(['response', 'list', '--project', 'Website', '--survey='])).toThrow(
-      'Option --survey requires a value.',
-    );
+    expect(() => parseArgs(['response', 'list', '--project='])).toThrow('Option --project requires a value.');
+    expect(() => parseArgs(['response', 'list', '--project', 'Website', '--survey='])).toThrow('Option --survey requires a value.');
   });
 });

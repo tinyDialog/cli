@@ -10,7 +10,7 @@ afterEach(() => {
 describe('API client', () => {
   test('sends authentication and compatibility headers', async () => {
     let requestUrl = '';
-    let requestHeaders: Headers|undefined;
+    let requestHeaders: Headers | undefined;
     globalThis.fetch = (async (input, init) => {
       requestUrl = String(input);
       requestHeaders = new Headers(init?.headers);
@@ -46,10 +46,11 @@ describe('API client', () => {
   });
 
   test('preserves HTTP error details when the JSON body is null', async () => {
-    globalThis.fetch = (async (_input, _init) => new Response('null', {
-      status: 401,
-      headers: {'Content-Type': 'application/json'},
-    })) as typeof fetch;
+    globalThis.fetch = (async (_input, _init) =>
+      new Response('null', {
+        status: 401,
+        headers: {'Content-Type': 'application/json'},
+      })) as typeof fetch;
 
     await expect(listProjects('https://app.tinydialog.com', 'expired-key', 25)).rejects.toMatchObject({
       status: 401,
