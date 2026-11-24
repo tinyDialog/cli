@@ -30,7 +30,7 @@ export type SurveyResponse = {
   timestamp: string;
   response: {
     type: 'single';
-    value: string|boolean|number;
+    value: string | boolean | number;
   };
   project: {
     id: string;
@@ -42,22 +42,22 @@ export type SurveyResponse = {
     name: string;
   };
   respondent: {
-    contact: string|null;
-    url: string|null;
-    operatingSystem: string|null;
-    browser: string|null;
-    screenSize: string|null;
+    contact: string | null;
+    url: string | null;
+    operatingSystem: string | null;
+    browser: string | null;
+    screenSize: string | null;
   };
-  extraData: Record<string, string>|null;
-  topics: string[]|null;
-  screenshotUrl: string|null;
+  extraData: Record<string, string> | null;
+  topics: string[] | null;
+  screenshotUrl: string | null;
 };
 
 export type ApiListResponse<T> = {
   data: T[];
   pagination: {
     limit: number;
-    nextCursor: string|null;
+    nextCursor: string | null;
   };
 };
 

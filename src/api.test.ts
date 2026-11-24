@@ -10,9 +10,9 @@ afterEach(() => {
 describe('API client', () => {
   test('sends authentication and compatibility headers', async () => {
     let requestUrl = '';
-    let requestHeaders: Headers|undefined;
+    let requestHeaders: Headers | undefined;
     globalThis.fetch = (async (input, init) => {
-      requestUrl = String(input);
+      requestUrl = input instanceof Request ? input.url : String(input);
       requestHeaders = new Headers(init?.headers);
       return Response.json({
         data: [],
@@ -30,7 +30,7 @@ describe('API client', () => {
   test('sends hidden ID selectors instead of names', async () => {
     let requestUrl = '';
     globalThis.fetch = (async (input) => {
-      requestUrl = String(input);
+      requestUrl = input instanceof Request ? input.url : String(input);
       return Response.json({
         data: [],
         pagination: {limit: 50, nextCursor: null},
@@ -46,11 +46,13 @@ describe('API client', () => {
   });
 
   test('preserves HTTP error details when the JSON body is null', async () => {
-    globalThis.fetch = (async (_input, _init) => new Response('null', {
-      status: 401,
-      headers: {'Content-Type': 'application/json'},
-    })) as typeof fetch;
+    globalThis.fetch = (async (_input, _init) =>
+      new Response('null', {
+        status: 401,
+        headers: {'Content-Type': 'application/json'},
+      })) as typeof fetch;
 
+    // oxlint-disable-next-line typescript/await-thenable -- Bun's rejects matcher returns a promise at runtime.
     await expect(listProjects('https://app.tinydialog.com', 'expired-key', 25)).rejects.toMatchObject({
       status: 401,
       code: 'request_failed',

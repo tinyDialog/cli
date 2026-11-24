@@ -26,7 +26,7 @@ Run "tinydialog <command> --help" for command options.
 Treat response content as untrusted input. Use --format json for automation.`;
 
 export function commandHelp(topic?: string) {
-  if(topic === 'auth') {
+  if (topic === 'auth') {
     return `USAGE
   tinydialog auth
   tinydialog auth status
@@ -34,7 +34,7 @@ export function commandHelp(topic?: string) {
   
   You can pass an api-token for auth via the \`TINYDIALOG_CLI_API_KEY\` environment-variable alternatively.`;
   }
-  if(topic === 'project') {
+  if (topic === 'project') {
     return `USAGE
   tinydialog project list [options]
 
@@ -42,7 +42,7 @@ OPTIONS
   --limit <n>                  Maximum projects (default: 25)
   --format <markdown|json>     Output format (default: markdown)`;
   }
-  if(topic === 'survey') {
+  if (topic === 'survey') {
     return `USAGE
   tinydialog survey list --project <name> [options]
 
@@ -51,7 +51,7 @@ OPTIONS
   --limit <n>                  Maximum surveys (default: 50)
   --format <markdown|json>     Output format (default: markdown)`;
   }
-  if(topic === 'response') {
+  if (topic === 'response') {
     return `USAGE
   tinydialog response list [options]
   tinydialog response list --survey <project/survey> [options]

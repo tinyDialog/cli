@@ -20,7 +20,12 @@
     "build": "bun build ./index.ts --target=node --outfile ./dist/npm/index.js",
     "build:standalone": "bun build ./index.ts --compile --minify --no-compile-autoload-dotenv --no-compile-autoload-bunfig",
     "prepack": "bun run build",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "bun check --no-script",
+    "lint": "bun --bun oxlint",
+    "lint:fix": "bun --bun oxlint --fix",
+    "format": "bun --bun oxfmt \"**/*.{js,mjs,cjs,ts,mts,cts}\"",
+    "format:check": "bun run format --check",
+    "check": "bun run lint && bun run format:check && bun run typecheck",
     "test": "bun test"
   },
   "engines": {
@@ -31,7 +36,9 @@
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "typescript": "^5.9.3"
+    "oxfmt": "0.78.0",
+    "oxlint": "1.94.0",
+    "tsrs": "7.1.0-beta.tsrs5"
   },
   "license": "MIT"
 }

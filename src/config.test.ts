@@ -2,26 +2,16 @@ import {afterEach, describe, expect, test} from 'bun:test';
 import {mkdtemp, mkdir, readFile, rm, stat, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {homedir, tmpdir} from 'node:os';
-import {
-  findDefaultProject,
-  getAuthenticationFilePath,
-  getConfigDirectory,
-  getStoredApiKey,
-  normalizeHost,
-  removeStoredApiKey,
-  storeApiKey,
-} from './config.ts';
+import {findDefaultProject, getAuthenticationFilePath, getConfigDirectory, getStoredApiKey, normalizeHost, removeStoredApiKey, storeApiKey} from './config.ts';
 
 const temporaryDirectories: string[] = [];
 const originalXdgConfigHome = process.env.XDG_CONFIG_HOME;
 
 afterEach(async () => {
-  if(originalXdgConfigHome == null) delete process.env.XDG_CONFIG_HOME;
+  if (originalXdgConfigHome == null) delete process.env.XDG_CONFIG_HOME;
   else process.env.XDG_CONFIG_HOME = originalXdgConfigHome;
 
-  await Promise.all(temporaryDirectories.splice(0).map((directory) => (
-    rm(directory, {recursive: true, force: true})
-  )));
+  await Promise.all(temporaryDirectories.splice(0).map((directory) => rm(directory, {recursive: true, force: true})));
 });
 
 async function temporaryDirectory() {
@@ -40,15 +30,21 @@ describe('configuration', () => {
     const directory = await temporaryDirectory();
     const nestedDirectory = join(directory, 'src', 'components');
     await mkdir(nestedDirectory, {recursive: true});
-    await writeFile(join(directory, 'package.json'), JSON.stringify({
-      tinydialog: {project: 'Website'},
-    }));
+    await writeFile(
+      join(directory, 'package.json'),
+      JSON.stringify({
+        tinydialog: {project: 'Website'},
+      }),
+    );
 
     expect(await findDefaultProject(nestedDirectory)).toBe('Website');
 
-    await writeFile(join(directory, 'package.json'), JSON.stringify({
-      tinyDialog: {project: 'Website 2 (camelCase)'},
-    }));
+    await writeFile(
+      join(directory, 'package.json'),
+      JSON.stringify({
+        tinyDialog: {project: 'Website 2 (camelCase)'},
+      }),
+    );
 
     expect(await findDefaultProject(nestedDirectory)).toBe('Website 2 (camelCase)');
   });
@@ -71,7 +67,7 @@ describe('configuration', () => {
     expect(await getStoredApiKey('https://app.tinydialog.com')).toBe('production-key');
     expect(await getStoredApiKey('http://localhost:3000')).toBe('local-key');
     expect(JSON.parse(await readFile(getAuthenticationFilePath(), 'utf8')).version).toBe(1);
-    if(process.platform !== 'win32') {
+    if (process.platform !== 'win32') {
       expect((await stat(getAuthenticationFilePath())).mode & 0o777).toBe(0o600);
     }
 
