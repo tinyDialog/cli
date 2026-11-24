@@ -147,7 +147,7 @@ jobs:
       - run: bun install --frozen-lockfile --ignore-scripts
 
       - run: |
-          bun run typecheck
+          bun run check
           bun test
 
       - name: Build release artifacts

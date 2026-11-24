@@ -25,7 +25,7 @@ jobs:
         with:
           bun-version-file: .bun-version
       - run: bun install --frozen-lockfile --ignore-scripts
-      - run: bun run typecheck
+      - run: bun run check
       - run: bun run build
       - run: bun run build:standalone -- --outfile dist/bin/tinydialog
       - run: bun test
