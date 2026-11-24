@@ -63,7 +63,8 @@ async function readAuthenticationFile(): Promise<AuthenticationFile> {
     }
 
     const hosts: Record<string, HostAuthentication> = {};
-    for (const [host, authentication] of Object.entries(parsed.hosts)) {
+    const hostEntries: [string, unknown][] = Object.entries(parsed.hosts);
+    for (const [host, authentication] of hostEntries) {
       if (
         typeof authentication === 'object' &&
         authentication != null &&
@@ -80,7 +81,7 @@ async function readAuthenticationFile(): Promise<AuthenticationFile> {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
       return {version: 1, hosts: {}};
     }
-    throw new Error(`Could not read ${getAuthenticationFilePath()}: ${(error as Error).message}`);
+    throw new Error(`Could not read ${getAuthenticationFilePath()}: ${(error as Error).message}`, {cause: error});
   }
 }
 
@@ -162,7 +163,7 @@ export async function findDefaultProject(startDirectory = process.cwd()) {
       const packageJson = JSON.parse(await readFile(packageJsonPath, 'utf8')) as unknown;
       const tinyDialogConfigInPackageJson =
         packageJson && typeof packageJson === 'object'
-          ? ((packageJson as Record<string, object>)['tinydialog'] ?? (packageJson as Record<string, object>)['tinyDialog'])
+          ? ((packageJson as Record<string, object>).tinydialog ?? (packageJson as Record<string, object>).tinyDialog)
           : null;
 
       if (tinyDialogConfigInPackageJson && 'project' in tinyDialogConfigInPackageJson) {
@@ -174,7 +175,7 @@ export async function findDefaultProject(startDirectory = process.cwd()) {
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
         if (error instanceof SyntaxError) {
-          throw new Error(`Could not parse ${packageJsonPath}: ${error.message}`);
+          throw new Error(`Could not parse ${packageJsonPath}: ${error.message}`, {cause: error});
         }
         throw error;
       }

@@ -3,9 +3,15 @@ import type {Project, Survey, SurveyResponse} from './types.ts';
 export type OutputFormat = 'json' | 'markdown';
 
 function sanitize(value: unknown) {
-  return String(value ?? '')
-    .replace(/\u001B(?:\[[0-?]*[ -/]*[@-~]|[@-_])/g, '')
-    .replace(/[\u0000-\u0008\u000B-\u001F\u007F]/g, '');
+  // oxlint-disable-next-line typescript/no-base-to-string -- Extra data can contain arbitrary JSON values. Preserve their existing display.
+  const text = String(value ?? '');
+  return (
+    text
+      // oxlint-disable-next-line no-control-regex -- Remove terminal escape sequences and control characters from rendered feedback.
+      .replace(/\u001B(?:\[[0-?]*[ -/]*[@-~]|[@-_])/g, '')
+      // oxlint-disable-next-line no-control-regex -- Strip control characters while preserving line feeds and tabs.
+      .replace(/[\u0000-\u0008\u000B-\u001F\u007F]/g, '')
+  );
 }
 
 function inline(value: unknown) {

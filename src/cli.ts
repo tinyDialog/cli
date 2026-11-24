@@ -128,7 +128,7 @@ async function runAuthLogout(host: string) {
 
   if (process.env.TINYDIALOG_CLI_API_KEY?.trim()) {
     process.stdout.write(
-      `${removed ? `Removed stored authentication from ${getAuthenticationFilePath()}.\n` : ''}` +
+      (removed ? `Removed stored authentication from ${getAuthenticationFilePath()}.\n` : '') +
         'TINYDIALOG_CLI_API_KEY is still set and must be removed from the environment to sign out fully.\n',
     );
     return;

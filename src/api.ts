@@ -41,9 +41,9 @@ async function requestJson<T>(host: string, apiKey: string, path: string, search
     });
   } catch (error) {
     if ((error as Error).name === 'TimeoutError') {
-      throw new Error(`Request to ${url.origin} timed out.`);
+      throw new Error(`Request to ${url.origin} timed out.`, {cause: error});
     }
-    throw new Error(`Could not connect to ${url.origin}: ${(error as Error).message}`);
+    throw new Error(`Could not connect to ${url.origin}: ${(error as Error).message}`, {cause: error});
   }
 
   let body: unknown;
